@@ -5,7 +5,7 @@ from datetime import datetime, timezone, timedelta
 from dateutil.parser import isoparse
 
 # === KONFIG ===
-API_KEY = "DIN_YOUTUBE_API_KEY_HÄR"   # <-- Lägg in din YouTube API key här
+API_KEY = "AIzaSyCEhqf92qs5ykEUNG15e_3h6bPO71m0TuU"   # <-- Lägg in din YouTube API key här
 MY_HANDLE = "@NextMomentumClips"
 CUTOFF = isoparse("2025-05-01T00:00:00Z")
 
