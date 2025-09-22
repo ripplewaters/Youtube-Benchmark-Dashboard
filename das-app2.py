@@ -12,14 +12,28 @@ CUTOFF = isoparse("2025-05-01T00:00:00Z")
 yt = build("youtube", "v3", developerKey=API_KEY)
 
 def get_channel_info(handle):
-    res = yt.channels().list(part="snippet,statistics", forHandle=handle).execute()
+    try:
+        # Försök hämta via handle
+        res = yt.channels().list(part="snippet,statistics", forHandle=handle).execute()
+        if not res.get("items"):
+            raise Exception("No items found for handle")
+    except Exception as e:
+        # Fallback: sök via kanalens användarsökning
+        search_res = yt.search().list(part="snippet", q=handle, type="channel", maxResults=1).execute()
+        if search_res.get("items"):
+            ch_id = search_res["items"][0]["id"]["channelId"]
+            res = yt.channels().list(part="snippet,statistics", id=ch_id).execute()
+        else:
+            st.error(f"Kunde inte hitta kanal med handle {handle}")
+            return {"id": None, "title": "", "subs": 0, "views": 0, "videos": 0}
+
     info = res["items"][0]
     return {
         "id": info["id"],
-        "title": info["snippet"]["title"],
-        "subs": int(info["statistics"].get("subscriberCount",0)),
-        "views": int(info["statistics"].get("viewCount",0)),
-        "videos": int(info["statistics"].get("videoCount",0))
+        "title": info["snippet"].get("title", ""),
+        "subs": int(info["statistics"].get("subscriberCount", 0)),
+        "views": int(info["statistics"].get("viewCount", 0)),
+        "videos": int(info["statistics"].get("videoCount", 0))
     }
 
 def get_last_videos(channel_id, days=7):
