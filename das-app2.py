@@ -5,7 +5,7 @@ from datetime import datetime, timezone, timedelta
 from dateutil.parser import isoparse
 
 # === KONFIG ===
-API_KEY = "AIzaSyCEhqf92qs5ykEUNG15e_3h6bPO71m0TuU"   # <-- Lägg in din YouTube API key här
+API_KEY = "DIN_YOUTUBE_API_KEY_HÄR"   # <-- Lägg in din YouTube API key här
 MY_HANDLE = "@NextMomentumClips"
 CUTOFF = isoparse("2025-05-01T00:00:00Z")
 
@@ -23,15 +23,29 @@ def get_channel_info(handle):
     }
 
 def get_last_videos(channel_id, days=7):
-    res = yt.search().list(
-        part="id,snippet", channelId=channel_id,
-        order="date", maxResults=50
-    ).execute()
-    vids = [v["id"]["videoId"] for v in res["items"] if v["id"]["kind"]=="youtube#video"]
+    # Hämta uploads playlist
+    res = yt.channels().list(part="contentDetails", id=channel_id).execute()
+    uploads_id = res["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"]
 
+    # Hämta senaste videos
+    videos = []
+    next_page = None
+    while True:
+        r = yt.playlistItems().list(
+            part="contentDetails",
+            playlistId=uploads_id,
+            maxResults=50,
+            pageToken=next_page
+        ).execute()
+        videos += [it["contentDetails"]["videoId"] for it in r["items"]]
+        next_page = r.get("nextPageToken")
+        if not next_page or len(videos) >= 100:
+            break
+
+    # Hämta statistik
     stats = []
-    for i in range(0, len(vids), 50):
-        r = yt.videos().list(part="statistics,snippet", id=",".join(vids[i:i+50])).execute()
+    for i in range(0, len(videos), 50):
+        r = yt.videos().list(part="statistics,snippet", id=",".join(videos[i:i+50])).execute()
         for it in r["items"]:
             stats.append({
                 "title": it["snippet"]["title"],
@@ -146,3 +160,4 @@ all_p75 = peer_summary["p75_video_views"].tolist()
 if daily>0 and len(all_p75)>0:
     my_rank = sum(v <= daily for v in all_p75)/len(all_p75)*100
     st.metric("Din percentilrank", f"Top {my_rank:.1f}%")
+
